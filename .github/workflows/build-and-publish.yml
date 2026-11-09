@@ -27,7 +27,7 @@ jobs:
         id: image
         shell: bash
         run: |
-          name="ghcr.io/${GITHUB_REPOSITORY_OWNER,,}/vshell-runtime"
+          name="ghcr.io/${GITHUB_REPOSITORY,,}"
           tag="${GITHUB_REF_NAME,,}"
           tag="${tag//\//-}"
           tag="${tag//[^a-z0-9_.-]/-}"

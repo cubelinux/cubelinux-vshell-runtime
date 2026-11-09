@@ -25,9 +25,15 @@ RUN dnf -y \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
-# Preconfigure Flathub for all users; this adds the remote but installs no apps.
-ADD https://dl.flathub.org/repo/flathub.flatpakrepo \
-    /etc/flatpak/remotes.d/flathub.flatpakrepo
+# VShell uses a fixed slirp4netns DNS proxy and a host-mounted X11 socket path.
+# Bake these into the immutable runtime so VShell never has to edit /etc after
+# the container has been made read-only.
+RUN rm -f /etc/resolv.conf && \
+    printf 'nameserver 10.0.2.3\n' > /etc/resolv.conf && \
+    mkdir -p /etc/tmpfiles.d && \
+    printf '%s\n' \
+        'L+ /tmp/.X11-unix - - - - /mnt/vshell-host-x11' \
+        > /etc/tmpfiles.d/cubelinux-vshell-x11.conf
 
 STOPSIGNAL SIGRTMIN+3
 CMD ["/usr/sbin/init"]

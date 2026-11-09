@@ -15,10 +15,17 @@ guest shell; this only limits Discover to Flatpak.
 
 The image does not bake in a username or home directory. VShell creates the
 guest account and mounts the signed-in user's home when it starts the runtime.
+The LXC instance's system files become read-only after setup. `/tmp` and `/var`
+remain temporary writable filesystems for instance state. The shared
+`/home/<user>` is the only default persistent writable mount; it preserves the
+user's Flatpak configuration and per-user app installs across resets. There is
+no separate persistent system Flatpak store.
 
-The image preconfigures Flathub as a system-wide Flatpak remote, but does not
-install any Flatpak applications. The default app list and Flatpak sandbox
-behavior inside rootless LXC still need to be settled and validated.
+VShell configures Flathub as a user-scoped remote inside the shared home when
+the runtime starts. If the network is unavailable, setup continues and VShell
+retries the remote setup the next time it opens. The image installs no Flatpak
+applications. Flatpak sandbox behavior inside rootless LXC still needs to be
+validated.
 
 ## Build
 
@@ -31,32 +38,36 @@ podman build -f Containerfile -t cubelinux-vshell-runtime:44 .
 ## Published image
 
 The GitHub Actions workflow publishes the multi-architecture runtime image to
-`ghcr.io/cubelinux/vshell-runtime`. It uses the same tag scheme as the main
-CubeLinux image:
+`ghcr.io/cubelinux/cubelinux-vshell-runtime`. It uses the same tag scheme as
+the main CubeLinux image:
 
 - The branch or Git ref name, such as `main`.
 - Full and short commit tags, such as `sha-<full-commit>` and `sha-<short-commit>`.
 - `latest` on each successful workflow run.
 - Semantic version tags, such as `v1.2.3`, also publish `1.2.3`, `1.2`, and `1`.
 
-The image is a build artifact. VShell will need an import/update path that
-creates its LXC root filesystem from a selected image version. Updating the
-runtime means replacing that root filesystem from a newer image, not running
-`bootc upgrade` inside LXC.
+The cubelinux host image bundles the published Runtime OCI image as an offline
+source. After Plasma Setup, VShell creates the user's LXC Runtime instance from
+that local copy; it does not bundle an LXC instance with host-specific account
+and network settings. Reset Runtime pulls the mutable `:main` tag from GHCR, so
+users can get a newer Runtime without first updating the host image. The
+bundled image changes when the host image is rebuilt, so publish this Runtime
+image before building a host image that should include a newer version. The
+guest does not run `bootc upgrade`.
 
 ## State and reset behavior
 
-The intended runtime layout is a read-only image base with a disposable
-writable layer. VShell should keep user data in separately managed mounts so a
-runtime reset can discard the writable layer without deleting the user's
-files.
-
-Flatpak system installations live under `/var/lib/flatpak` and can be baked
-into a runtime image once the default app list is chosen. Flatpak per-user
-installations live under the user's data directory. VShell currently shares
-the host home with the guest, so `flatpak install --user` writes into the host
-home and survives replacing the LXC root filesystem. Any Flatpak sandbox
-limitations in rootless LXC must be tested before relying on this workflow.
+The LXC instance's system files are mounted read-only after VShell has created
+the guest account. `/tmp` and `/var` are temporary writable filesystems. The shared
+`/home/<user>` is the only default persistent writable mount, so per-user
+Flatpak installs and the user-scoped Flathub remote survive recreating the
+container. The first LXC instance is created locally from the OCI image
+bundled in the host image and does not require internet access to fetch
+Runtime. Reset requires internet
+access to resolve and pull the current `:main` image from GHCR. There is no
+persistent system Flatpak store. Additional host folders can still be shared
+read-write when explicitly configured in VShell settings. Any Flatpak sandbox
+limitations in rootless LXC must be validated before relying on this workflow.
 
 ## License
 
