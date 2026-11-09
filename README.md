@@ -1,6 +1,6 @@
-# CubeLinux VShell Runtime
+# cubelinux VShell Runtime
 
-This project builds the Fedora user-space image used by CubeLinux VShell. It is
+This project builds the Fedora user-space image used by cubelinux VShell. It is
 separate from the bootc desktop image and is intended to be imported and run as
 an LXC system container. LXC uses the host kernel; this image does not boot a
 second kernel or use `bootc upgrade` inside the guest.
@@ -20,6 +20,10 @@ remain temporary writable filesystems for instance state. The shared
 `/home/<user>` is the only default persistent writable mount; it preserves the
 user's Flatpak configuration and per-user app installs across resets. There is
 no separate persistent system Flatpak store.
+
+The image includes empty `/mnt/vshell-host-runtime` and `/mnt/vshell-host-x11`
+directories for LXC's host desktop bind mounts. They must exist in the image
+because VShell mounts the system filesystem read-only after setup.
 
 VShell configures Flathub as a user-scoped remote inside the shared home when
 the runtime starts. If the network is unavailable, setup continues and VShell
@@ -43,7 +47,7 @@ podman build -f Containerfile -t cubelinux-vshell-runtime:44 .
 
 The GitHub Actions workflow publishes the multi-architecture runtime image to
 `ghcr.io/cubelinux/cubelinux-vshell-runtime`. It uses the same tag scheme as
-the main CubeLinux image:
+the main cubelinux image:
 
 - The branch or Git ref name, such as `main`.
 - Full and short commit tags, such as `sha-<full-commit>` and `sha-<short-commit>`.
@@ -75,6 +79,6 @@ limitations in rootless LXC must be validated before relying on this workflow.
 
 ## License
 
-CubeLinux VShell Runtime project files are licensed under GPL-3.0-or-later.
+cubelinux VShell Runtime project files are licensed under GPL-3.0-or-later.
 See [LICENSE](LICENSE) and [COPYRIGHT](COPYRIGHT). Fedora and other software
 included in the image retain their own licenses.

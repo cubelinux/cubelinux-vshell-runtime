@@ -27,7 +27,7 @@ RUN dnf -y \
 
 # The host-mounted X11 socket path is fixed. VShell configures the slirp4netns
 # resolver inside each LXC instance during first setup.
-RUN mkdir -p /etc/tmpfiles.d && \
+RUN mkdir -p /etc/tmpfiles.d /mnt/vshell-host-runtime /mnt/vshell-host-x11 && \
     printf '%s\n' \
         'L+ /tmp/.X11-unix - - - - /mnt/vshell-host-x11' \
         > /etc/tmpfiles.d/cubelinux-vshell-x11.conf
