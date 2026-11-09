@@ -27,6 +27,10 @@ retries the remote setup the next time it opens. The image installs no Flatpak
 applications. Flatpak sandbox behavior inside rootless LXC still needs to be
 validated.
 
+The slirp4netns DNS address (`10.0.2.3`) is configured inside the LXC instance
+during first setup, when VShell knows which user-mode network it starts. It is
+not written to `/etc/resolv.conf` during the image build.
+
 ## Build
 
 Build the OCI image from this directory with Podman or Docker:

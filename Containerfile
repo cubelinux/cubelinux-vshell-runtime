@@ -25,12 +25,9 @@ RUN dnf -y \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
-# VShell uses a fixed slirp4netns DNS proxy and a host-mounted X11 socket path.
-# Bake these into the immutable runtime so VShell never has to edit /etc after
-# the container has been made read-only.
-RUN rm -f /etc/resolv.conf && \
-    printf 'nameserver 10.0.2.3\n' > /etc/resolv.conf && \
-    mkdir -p /etc/tmpfiles.d && \
+# The host-mounted X11 socket path is fixed. VShell configures the slirp4netns
+# resolver inside each LXC instance during first setup.
+RUN mkdir -p /etc/tmpfiles.d && \
     printf '%s\n' \
         'L+ /tmp/.X11-unix - - - - /mnt/vshell-host-x11' \
         > /etc/tmpfiles.d/cubelinux-vshell-x11.conf
