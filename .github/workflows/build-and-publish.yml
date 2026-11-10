@@ -16,7 +16,7 @@ permissions:
 
 jobs:
   build-and-publish:
-    name: Build and publish Fedora runtime image
+    name: Build, chunk, and publish Fedora runtime image
     runs-on: ubuntu-24.04
 
     steps:
@@ -51,6 +51,7 @@ jobs:
           created="$(date -u +'%Y-%m-%dT%H:%M:%SZ')"
           version="${created%%T*}+${GITHUB_SHA:0:7}"
           echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "staging_tag=${name}:staging-${GITHUB_SHA}" >> "$GITHUB_OUTPUT"
           echo "created=$created" >> "$GITHUB_OUTPUT"
           echo "version=$version" >> "$GITHUB_OUTPUT"
           {
@@ -72,15 +73,14 @@ jobs:
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
 
-      - name: Build and publish runtime image
-        id: build
+      - name: Build staging runtime image
         uses: docker/build-push-action@v6
         with:
           context: .
           file: ./Containerfile
           platforms: linux/amd64,linux/arm64
           push: true
-          tags: ${{ steps.image.outputs.tags }}
+          tags: ${{ steps.image.outputs.staging_tag }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           labels: |
@@ -89,9 +89,99 @@ jobs:
             org.opencontainers.image.created=${{ steps.image.outputs.created }}
             org.opencontainers.image.version=${{ steps.image.outputs.version }}
 
+      - name: Install Skopeo
+        run: |
+          sudo apt-get update
+          sudo apt-get install --no-install-recommends -y jq skopeo
+          sudo apt-get clean
+          sudo rm -rf /var/lib/apt/lists/*
+
+      - name: Rechunk each architecture and publish final tags
+        id: publish
+        env:
+          IMAGE_NAME: ${{ steps.image.outputs.name }}
+          IMAGE_TAGS: ${{ steps.image.outputs.tags }}
+          STAGING_TAG: ${{ steps.image.outputs.staging_tag }}
+          REGISTRY_USERNAME: ${{ github.actor }}
+          REGISTRY_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          authfile="${RUNNER_TEMP}/containers-auth.json"
+          chunkah_image="quay.io/coreos/chunkah:v0.7.1"
+          version="$(docker version --format '{{.Server.Version}}')"
+          major="${version%%.*}"
+          if (( major < 28 )); then
+            echo "Chunkah image mounts require Docker Engine 28 or newer; found ${version}." >&2
+            exit 1
+          fi
+
+          printf '%s' "$REGISTRY_TOKEN" | skopeo login ghcr.io \
+            --authfile "$authfile" \
+            --username "$REGISTRY_USERNAME" \
+            --password-stdin
+
+          docker pull "$chunkah_image"
+
+          for target in "amd64 linux/amd64" "arm64 linux/arm64"; do
+            read -r arch platform <<< "$target"
+            docker pull --platform "$platform" "$STAGING_TAG"
+
+            actual_arch="$(docker image inspect --format '{{.Architecture}}' "$STAGING_TAG")"
+            if [[ "$actual_arch" != "$arch" ]]; then
+              echo "Expected ${platform}, but Docker selected ${actual_arch}." >&2
+              exit 1
+            fi
+
+            image_config="$(docker image inspect "$STAGING_TAG")"
+            output_layout="${RUNNER_TEMP}/chunked-${arch}"
+            chunked_tag="${IMAGE_NAME}:staging-${GITHUB_SHA}-chunked-${arch}"
+
+            docker run --rm --platform linux/amd64 \
+              --mount "type=image,src=${STAGING_TAG},destination=/chunkah" \
+              --volume "${RUNNER_TEMP}:/run/src" \
+              --env "CHUNKAH_CONFIG_STR=${image_config}" \
+              "$chunkah_image" build \
+                --arch "$arch" \
+                --max-layers 127 \
+                --compressed \
+                --compression-level 9 \
+                --source-date-epoch 0 \
+                --output "oci:/run/src/chunked-${arch}" \
+                --tag latest
+
+            skopeo copy --all --format oci --authfile "$authfile" \
+              "oci:${output_layout}:latest" \
+              "docker://${chunked_tag}"
+            sudo rm -rf "$output_layout"
+          done
+
+          first_tag=true
+          while IFS= read -r tag; do
+            [[ -n "$tag" ]] || continue
+            docker buildx imagetools create --tag "$tag" \
+              "${IMAGE_NAME}:staging-${GITHUB_SHA}-chunked-amd64" \
+              "${IMAGE_NAME}:staging-${GITHUB_SHA}-chunked-arm64"
+
+            if [[ "$first_tag" == true ]]; then
+              raw_manifest="$(docker buildx imagetools inspect "$tag" --raw)"
+              printf '%s' "$raw_manifest" | jq -e '
+                [.manifests[]?.platform.architecture] as $architectures |
+                ($architectures | index("amd64") != null) and
+                ($architectures | index("arm64") != null)
+              ' >/dev/null
+              digest="$(printf '%s' "$raw_manifest" | sha256sum | cut -d ' ' -f 1)"
+              echo "digest=sha256:${digest}" >> "$GITHUB_OUTPUT"
+              first_tag=false
+            fi
+          done <<< "$IMAGE_TAGS"
+
+          rm -f "$authfile"
+
       - name: Attest published runtime image
         uses: actions/attest@v4
         with:
           subject-name: ${{ steps.image.outputs.name }}
-          subject-digest: ${{ steps.build.outputs.digest }}
+          subject-digest: ${{ steps.publish.outputs.digest }}
           push-to-registry: false

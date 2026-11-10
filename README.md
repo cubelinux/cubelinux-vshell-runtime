@@ -15,11 +15,6 @@ guest shell; this only limits Discover to Flatpak.
 
 The image does not bake in a username or home directory. VShell creates the
 guest account and mounts the signed-in user's home when it starts the runtime.
-The LXC instance's system files become read-only after setup. `/tmp` and `/var`
-remain temporary writable filesystems for instance state. The shared
-`/home/<user>` is the only default persistent writable mount; it preserves the
-user's Flatpak configuration and per-user app installs across resets. There is
-no separate persistent system Flatpak store.
 
 The image includes empty `/mnt/vshell-host-runtime` and `/mnt/vshell-host-x11`
 directories for LXC's host desktop bind mounts. They must exist in the image
@@ -54,28 +49,30 @@ the main cubelinux image:
 - `latest` on each successful workflow run.
 - Semantic version tags, such as `v1.2.3`, also publish `1.2.3`, `1.2`, and `1`.
 
-The cubelinux host image bundles the published Runtime OCI image as an offline
-source. After Plasma Setup, VShell creates the user's LXC Runtime instance from
-that local copy; it does not bundle an LXC instance with host-specific account
-and network settings. Reset Runtime pulls the mutable `:main` tag from GHCR, so
-users can get a newer Runtime without first updating the host image. The
-bundled image changes when the host image is rebuilt, so publish this Runtime
-image before building a host image that should include a newer version. The
-guest does not run `bootc upgrade`.
+Before publishing the final tags, the workflow uses
+[Chunkah](https://github.com/coreos/chunkah) to split the `amd64` and `arm64`
+root filesystems into content-based OCI layers, then
+publishes them together as a multi-architecture image. This keeps the Runtime
+as a regular OCI image for LXC while allowing unchanged package layers to be
+reused when a new Runtime image is pulled.
+
+The host image does not bundle this Runtime OCI image. At the first KDE login
+after Plasma Setup, VShell pulls the mutable `:main` tag from GHCR and creates
+the user's `cubelinux-runtime` LXC instance. This first setup needs an internet
+connection. Later logins start the existing container. Runtime releases do not
+require a host image rebuild, and the guest does not run `bootc upgrade`.
 
 ## State and reset behavior
 
 The LXC instance's system files are mounted read-only after VShell has created
-the guest account. `/tmp` and `/var` are temporary writable filesystems. The shared
-`/home/<user>` is the only default persistent writable mount, so per-user
-Flatpak installs and the user-scoped Flathub remote survive recreating the
-container. The first LXC instance is created locally from the OCI image
-bundled in the host image and does not require internet access to fetch
-Runtime. Reset requires internet
-access to resolve and pull the current `:main` image from GHCR. There is no
-persistent system Flatpak store. Additional host folders can still be shared
-read-write when explicitly configured in VShell settings. Any Flatpak sandbox
-limitations in rootless LXC must be validated before relying on this workflow.
+the guest account. `/tmp` and `/var` are temporary writable filesystems. The
+shared `/home/<user>` is the only default persistent writable mount, so
+per-user Flatpak installs and the user-scoped Flathub remote survive recreating
+the container. Reset pulls the current `:main` image from GHCR and requires
+internet access. There is no persistent system Flatpak store. Additional host
+folders can still be shared read-write when explicitly configured in VShell
+settings. Any Flatpak sandbox limitations in rootless LXC must be validated
+before relying on this workflow.
 
 ## License
 
