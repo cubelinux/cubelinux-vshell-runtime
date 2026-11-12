@@ -18,6 +18,7 @@ RUN dnf -y \
         dbus-broker \
         dbus-x11 \
         iputils \
+        iproute \
         net-tools \
         ncurses \
         flatpak \

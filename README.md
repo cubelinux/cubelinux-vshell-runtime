@@ -8,7 +8,8 @@ second kernel or use `bootc upgrade` inside the guest.
 ## Initial contents
 
 The Fedora 44 OCI image includes systemd for the LXC init process, D-Bus,
-Flatpak, KDE Discover with its Flatpak backend, `sudo`, and user account tools.
+Flatpak, KDE Discover with its Flatpak backend, `iproute` for first-time guest network
+setup, `sudo`, and user account tools.
 Discover's PackageKit/RPM, RPM-OSTree, Snap, KNewStuff, and offline-update
 backends are excluded. Fedora's `dnf` and RPM tools remain available in the
 guest shell; this only limits Discover to Flatpak.
