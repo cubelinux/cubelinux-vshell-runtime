@@ -12,6 +12,7 @@ Flatpak, KDE Discover with its Flatpak backend, `sudo`, and user account tools.
 Discover's PackageKit/RPM, RPM-OSTree, Snap, KNewStuff, and offline-update
 backends are excluded. Fedora's `dnf` and RPM tools remain available in the
 guest shell; this only limits Discover to Flatpak.
+VShell launches Discover with a short-lived private D-Bus session because it cannot register its KDE D-Bus service on the forwarded host session bus.
 
 The image does not bake in a username or home directory. VShell creates the
 guest account and mounts the signed-in user's home when it starts the runtime.
@@ -71,8 +72,11 @@ per-user Flatpak installs and the user-scoped Flathub remote survive recreating
 the container. Reset pulls the current `:main` image from GHCR and requires
 internet access. There is no persistent system Flatpak store. Additional host
 folders can still be shared read-write when explicitly configured in VShell
-settings. Any Flatpak sandbox limitations in rootless LXC must be validated
-before relying on this workflow.
+settings. VShell mounts the guest's `/proc` read-write so Bubblewrap can create
+the nested proc filesystem required by Flatpak. This also makes `/proc/sys`
+read-write at the guest mount level, subject to kernel namespace and capability
+checks. It changes only the unprivileged guest's proc mount, not the host's
+`/proc` or bootc image.
 
 ## License
 

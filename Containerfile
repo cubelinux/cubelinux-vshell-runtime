@@ -16,6 +16,10 @@ RUN dnf -y \
         --exclude='rpm-ostree*' \
         install \
         dbus-broker \
+        dbus-x11 \
+        iputils \
+        net-tools \
+        ncurses \
         flatpak \
         plasma-discover \
         plasma-discover-flatpak \
