@@ -22,6 +22,8 @@ RUN dnf -y \
         net-tools \
         ncurses \
         flatpak \
+        google-noto-sans-khmer-vf-fonts \
+        google-noto-serif-khmer-vf-fonts \
         plasma-discover \
         plasma-discover-flatpak \
         shadow-utils \
