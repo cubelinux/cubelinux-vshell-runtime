@@ -8,8 +8,8 @@ second kernel or use `bootc upgrade` inside the guest.
 ## Initial contents
 
 The Fedora 44 OCI image includes systemd for the LXC init process, D-Bus,
-Flatpak, KDE Discover with its Flatpak backend, `iproute` for first-time guest network
-setup, `sudo`, and user account tools.
+Flatpak, KDE Discover with its Flatpak backend, Mesa OpenGL and Vulkan drivers,
+`iproute` for first-time guest network setup, `sudo`, and user account tools.
 Discover's PackageKit/RPM, RPM-OSTree, Snap, KNewStuff, and offline-update
 backends are excluded. Fedora's `dnf` and RPM tools remain available in the
 guest shell; this only limits Discover to Flatpak.
@@ -21,6 +21,13 @@ guest account and mounts the signed-in user's home when it starts the runtime.
 The image includes empty `/mnt/vshell-host-runtime` and `/mnt/vshell-host-x11`
 directories for LXC's host desktop bind mounts. They must exist in the image
 because VShell mounts the system filesystem read-only after setup.
+
+On startup, VShell can optionally bind only the host's accessible Intel and AMD
+DRM card and render nodes into the container and allow those device numbers in
+the LXC device cgroup. It does not pass NVIDIA or other vendor devices. If no
+supported host node is present, the container still starts with Mesa software
+rendering available through llvmpipe and lavapipe. A VM must expose a supported
+Intel or AMD DRM device to CubeLinux for hardware acceleration to be available.
 
 VShell configures Flathub as a user-scoped remote inside the shared home when
 the runtime starts. If the network is unavailable, setup continues and VShell
