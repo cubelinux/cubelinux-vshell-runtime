@@ -24,6 +24,8 @@ RUN dnf -y \
         flatpak \
         mesa-dri-drivers \
         mesa-vulkan-drivers \
+        google-noto-sans-cjk-vf-fonts \
+        google-noto-sans-math-fonts \
         google-noto-sans-khmer-vf-fonts \
         google-noto-serif-khmer-vf-fonts \
         plasma-discover \

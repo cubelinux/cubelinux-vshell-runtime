@@ -9,7 +9,9 @@ second kernel or use `bootc upgrade` inside the guest.
 
 The Fedora 44 OCI image includes systemd for the LXC init process, D-Bus,
 Flatpak, KDE Discover with its Flatpak backend, Mesa OpenGL and Vulkan drivers,
-`iproute` for first-time guest network setup, `sudo`, and user account tools.
+Noto Sans CJK for Chinese, Japanese, and Korean glyphs, Noto Sans Math for
+mathematical alphanumeric symbols, Khmer sans and serif fonts, `iproute` for
+first-time guest network setup, `sudo`, and user account tools.
 Discover's PackageKit/RPM, RPM-OSTree, Snap, KNewStuff, and offline-update
 backends are excluded. Fedora's `dnf` and RPM tools remain available in the
 guest shell; this only limits Discover to Flatpak.
