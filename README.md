@@ -13,7 +13,7 @@ Flatpak, KDE Discover with its Flatpak backend, Mesa OpenGL and Vulkan drivers,
 Discover's PackageKit/RPM, RPM-OSTree, Snap, KNewStuff, and offline-update
 backends are excluded. Fedora's `dnf` and RPM tools remain available in the
 guest shell; this only limits Discover to Flatpak.
-VShell launches Discover with a short-lived private D-Bus session because it cannot register its KDE D-Bus service on the forwarded host session bus.
+VShell launches Discover with a short-lived private D-Bus session because it cannot register its KDE D-Bus service on the forwarded host session bus. Flatpak applications also get a private session bus so the Runtime's `flatpak-portal` service can activate there; Steam uses this service to launch its game sandbox.
 
 The image does not bake in a username or home directory. VShell creates the
 guest account and mounts the signed-in user's home when it starts the runtime.
