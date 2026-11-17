@@ -12,6 +12,8 @@ Flatpak, KDE Discover with its Flatpak backend, Mesa OpenGL and Vulkan drivers,
 Noto Sans CJK for Chinese, Japanese, and Korean glyphs, Noto Sans Math for
 mathematical alphanumeric symbols, Khmer sans and serif fonts, `iproute` for
 first-time guest network setup, `sudo`, and user account tools.
+The image build refreshes Fontconfig's cache after installing fonts so new
+runtime containers discover the bundled glyphs.
 Discover's PackageKit/RPM, RPM-OSTree, Snap, KNewStuff, and offline-update
 backends are excluded. Fedora's `dnf` and RPM tools remain available in the
 guest shell; this only limits Discover to Flatpak.

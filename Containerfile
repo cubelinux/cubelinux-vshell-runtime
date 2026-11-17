@@ -33,6 +33,7 @@ RUN dnf -y \
         shadow-utils \
         sudo \
         systemd && \
+    fc-cache -f && \
     dnf clean all && \
     rm -rf /var/cache/dnf
 
